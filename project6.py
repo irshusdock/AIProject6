@@ -3,6 +3,8 @@
 import sys
 import random
 
+LOG = False
+
 "Node class for bayesian network"
 "name is the name of the Node"
 "parent1 is the first parent node"
@@ -168,11 +170,13 @@ def change_parent_assigments_to_nodes(network):
 		if (node.parent2 != None):
 			node.parent2 = find_node_by_name(network, node.parent2)
 
+"Returns the node named"
 def find_node_by_name(network, name):
 	for node in network:
 		if node.name == name:
 			return node
 
+"Generates a value of true or false for a node. Takes into account the cpt"
 def gen_val(node, network):
 	if (node.parent1 != None):
 		if (node.parent1.value == None):
@@ -193,11 +197,13 @@ def prior_sample(network):
 		if (node.value == None):
 			node.value = gen_val(node, network)
 
+"Checks the value of the query variable in a network"
 def check_query_variable(network):
 	for node in network:
 		if (node.status == "q"):
 			return node.value
 
+"Check that a created net is consistent with the provided evidence variables"
 def check_consistency(network):
 	validity = True
 	for node in network:
@@ -209,6 +215,7 @@ def check_consistency(network):
 				validity = False
 	return validity
 
+"Performs rejection sampling on the network for the given number of samples"
 def rejection_sampling(network, sample_number):
 	true_count = 0
 	false_count = 0
@@ -223,29 +230,33 @@ def rejection_sampling(network, sample_number):
 			else:
 				false_count+=1
 		clear_network_values(network)
-	print("Number consistent:", consistent_count)
 	if ((false_count+true_count)!=0):
-		print ("Ratio:", (true_count)/(false_count+true_count))
+		print ("Rejection Sampling probability:", (true_count)/(false_count+true_count))
 		return (true_count/(false_count+true_count))
 	else:
-		print("Not enough samples")
-		return 0
+		print("Rejection Sampling probability: Not enough samples")
+		return -1
 
+"Both generates a consistent network, and finds the likelihood of this set of evidence variables occuring. Returns this as weight"
 def weighted_sample (network):
 	weight = 1
+	"Make network consistent"
 	for node in network:
 		if (node.status == "t"):
 			node.value = True
 		if (node.status == "f"):
 			node.value = False
+	"Find weight of network"
 	for node in network:
 		if (node.status == "t" or node.status=="f"):
 			gen_val(node, network)
+			"If no parents"
 			if (node.parent1 == None):
 				if (node.value == True):
 					weight = weight * node.cpt.cpt_1_T
 				else:
 					weight = weight * node.cpt.cpt_1_F
+			"If one parent"
 			if (node.parent1 != None and node.parent2 == None):
 				if (node.parent1.value == True):
 					if (node.value == True):
@@ -257,6 +268,7 @@ def weighted_sample (network):
 						weight = weight * node.cpt.cpt_1_T
 					else:
 						weight = weight * node.cpt.cpt_1_F
+			"If two parents"
 			if (node.parent1 != None and node.parent2!=None):
 				if (node.parent1.value == False and node.parent2.value == False):
 					if (node.value == True):
@@ -283,6 +295,7 @@ def weighted_sample (network):
 
 	return weight
 
+"Performs likelihood weighting on the network for the given number of samples"
 def likelihood_weighting(network, sample_number):
 	true_count = 0;
 	false_count = 0;
@@ -292,25 +305,31 @@ def likelihood_weighting(network, sample_number):
 			true_count+=weight 
 		else:
 			false_count+=weight 
-	print("True_count:", true_count)
-	print("False_count:", false_count)
 	if ((true_count+false_count) != 0):
-		print("Probability:", (true_count/(true_count+false_count)))
+		print ("Likelihood weighting probability:", (true_count/(false_count+true_count)))
+		return (true_count/(true_count+false_count))
 	else:
-		print("Not enough samples")
+		print ("Likelihood Weighting probability: Not enough samples")
+		return -1
 
-
+"Resets the values of nodes within a network"
 def clear_network_values (network):
 	for node in network:
 		node.value = None
 
 def project6_main():
+	random.seed()
+	if (LOG):
+		f = open('output2.txt', 'a')
 	network = create_bayesian_network(sys.argv[1])
 	assign_status(sys.argv[2], network)
 	change_parent_assigments_to_nodes(network)
 
-	rejection_sampling(network, int(sys.argv[3]))
-	likelihood_weighting(network, 20000)
+	rejection_probability = str(rejection_sampling(network, int(sys.argv[3])))
+	likelihood_probability = str(likelihood_weighting(network, int(sys.argv[3])))
 
+	if (LOG):
+		write_line = sys.argv[2] + "," + sys.argv[3] + "," + rejection_probability + "," + likelihood_probability + "\n"
+		f.write(write_line)
 if __name__ == '__main__':
 	project6_main()		

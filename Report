@@ -18,4 +18,5 @@ Explain why
 	Likelihood weighting performed better than rejection sampling because it is specifically designed to address the issue of too many samples being
 	rejected. Likelihood weighting generates only consistent bayes nets, accounting for this choice by weighting the resultant nets by their likelihood
 	of occurring naturally. Likelihood weighting converged faster because it didn't have to reject inconsistent nets, and was thus able to use all the nets 
-	it generated.
+	it generated. This means that likeliehood sampling generates X consistent samples where X is the given sample number whereas rejection sampling generates
+	anywhere between 0 and X consistent samples. This means likelihood sampling has more data to work with, and thus is more accurate, than rejection sampling. 

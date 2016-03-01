@@ -25,6 +25,14 @@ class Node:
 	def set_status(self, status):
 		self.status = status
 
+	def print_out(self):
+		print ("Node", self.name)
+		if (self.parent1 != None):
+			print ("-parent1:", self.parent1)
+		if (self.parent2 != None):
+			print ("-parent2:", self.parent2)
+		print ("-status:", self.status)
+
 "Conditional probability table class"
 "cpt_#_T/F correspond to the values of the cpt listed in the project specs"
 class CPT:
@@ -45,6 +53,28 @@ class CPT:
 		self.cpt_3_T = list_of_cpt_values[5]
 		self.cpt_4_F = list_of_cpt_values[6]
 		self.cpt_4_T = list_of_cpt_values[7]
+
+	"Returns a value of true or false based on the CPT with no parents"
+	def get_val_no_parents (self):
+		return ((random.random<self.cpt_1_T))
+
+	"Returns a value of true or false based on the CPT with one parent"
+	def get_val_one_parent (self, parent_val):
+		if (parent_val):
+			return ((random.random < self.cpt_2_T))
+		else:
+			return ((random.random < self.cpt_1_T))
+
+	"Returns a value of true or false based on the CPT with two parents"
+	def get_val_two_parents (self, parent1_val, parent2_val):
+		if ((parent1_val != True) and (parent2_val!=True)):
+			return (random.random() < self.cpt_1_T)
+		elif ((parent1_val != True) and parent2_val):
+			return (random.random() < self.cpt_2_T)
+		elif (pareant1_val and (parent2_val!=True)):
+			return (random.random() < self.cpt_3_T)
+		else:
+			return (random.random() < self.cpt_4_T)
 
 "Create a bayesian network using input from the passed file"
 "filename is the name of the file to read from"
@@ -126,9 +156,17 @@ def assign_status(filename, network):
 		node.set_status(file_content[index])
 		index = index + 1
 
+"Generate a sample from a given network"
+def prior_sample(network):
+	#TODO Implement this
+	print ("prior_sample")
+
 def project6_main():
 	network = create_bayesian_network(sys.argv[1])
 	assign_status(sys.argv[2], network)
+
+	for node in network:
+		node.print_out()
 
 if __name__ == '__main__':
 	project6_main()		

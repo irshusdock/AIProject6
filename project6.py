@@ -1,6 +1,7 @@
 "arkessler & irshusdock"
 "Alexi Kessler & Ian Shusdock"
 import sys
+import random
 
 "Node class for bayesian network"
 "name is the name of the Node"
@@ -14,7 +15,8 @@ class Node:
 		self.parent1 = None
 		self.parent2 = None
 		self.cpt = cpt
-		self.status = ""
+		self.status = None
+		self.value = None
 
 	def set_parent1(self, parent1):
 		self.parent1 = parent1
@@ -28,42 +30,43 @@ class Node:
 	def print_out(self):
 		print ("Node", self.name)
 		if (self.parent1 != None):
-			print ("-parent1:", self.parent1)
+			print ("-parent1:", self.name)
 		if (self.parent2 != None):
-			print ("-parent2:", self.parent2)
+			print ("-parent2:", self.parent2.name)
 		print ("-status:", self.status)
+		print ("-value:", self.value)
 
 "Conditional probability table class"
 "cpt_#_T/F correspond to the values of the cpt listed in the project specs"
 class CPT:
 	def __init__(self, list_of_cpt_values):
-		self.cpt_1_F = list_of_cpt_values[0]
-		self.cpt_1_T = list_of_cpt_values[1]
+		self.cpt_1_F = (float)(list_of_cpt_values[0])
+		self.cpt_1_T = (float)(list_of_cpt_values[1])
 
 		if(len(list_of_cpt_values) == 2):
 			return
 
-		self.cpt_2_F = list_of_cpt_values[2]
-		self.cpt_2_T = list_of_cpt_values[3]
+		self.cpt_2_F = (float)(list_of_cpt_values[2])
+		self.cpt_2_T = (float)(list_of_cpt_values[3])
 
 		if(len(list_of_cpt_values) == 4):
 			return	
 
-		self.cpt_3_F = list_of_cpt_values[4]
-		self.cpt_3_T = list_of_cpt_values[5]
-		self.cpt_4_F = list_of_cpt_values[6]
-		self.cpt_4_T = list_of_cpt_values[7]
+		self.cpt_3_F = (float)(list_of_cpt_values[4])
+		self.cpt_3_T = (float)(list_of_cpt_values[5])
+		self.cpt_4_F = (float)(list_of_cpt_values[6])
+		self.cpt_4_T = (float)(list_of_cpt_values[7])
 
 	"Returns a value of true or false based on the CPT with no parents"
 	def get_val_no_parents (self):
-		return ((random.random<self.cpt_1_T))
+		return ((random.random()<self.cpt_1_T))
 
 	"Returns a value of true or false based on the CPT with one parent"
 	def get_val_one_parent (self, parent_val):
 		if (parent_val):
-			return ((random.random < self.cpt_2_T))
+			return ((random.random() < self.cpt_2_T))
 		else:
-			return ((random.random < self.cpt_1_T))
+			return ((random.random() < self.cpt_1_T))
 
 	"Returns a value of true or false based on the CPT with two parents"
 	def get_val_two_parents (self, parent1_val, parent2_val):
@@ -71,7 +74,7 @@ class CPT:
 			return (random.random() < self.cpt_1_T)
 		elif ((parent1_val != True) and parent2_val):
 			return (random.random() < self.cpt_2_T)
-		elif (pareant1_val and (parent2_val!=True)):
+		elif (parent1_val and (parent2_val!=True)):
 			return (random.random() < self.cpt_3_T)
 		else:
 			return (random.random() < self.cpt_4_T)
@@ -156,17 +159,158 @@ def assign_status(filename, network):
 		node.set_status(file_content[index])
 		index = index + 1
 
+"Goes through the nodes in a network and updates all their parent assignments from strings"
+"to actual nodes"
+def change_parent_assigments_to_nodes(network):
+	for node in network:
+		if (node.parent1 != None):
+			node.parent1 = find_node_by_name(network, node.parent1)
+		if (node.parent2 != None):
+			node.parent2 = find_node_by_name(network, node.parent2)
+
+def find_node_by_name(network, name):
+	for node in network:
+		if node.name == name:
+			return node
+
+def gen_val(node, network):
+	if (node.parent1 != None):
+		if (node.parent1.value == None):
+			node.parent1.value = gen_val(node.parent1, network)
+		if (node.parent2 != None):
+			if (node.parent2.value == None):
+				node.parent2.value = gen_val(node.parent2, network)
+			return node.cpt.get_val_two_parents(node.parent1.value, node.parent2.value)
+		else:
+			return node.cpt.get_val_one_parent(node.parent1.value)
+	else:
+		return (node.cpt.get_val_no_parents())
+
 "Generate a sample from a given network"
 def prior_sample(network):
 	#TODO Implement this
-	print ("prior_sample")
+	for node in network:
+		if (node.value == None):
+			node.value = gen_val(node, network)
+
+def check_query_variable(network):
+	for node in network:
+		if (node.status == "q"):
+			return node.value
+
+def check_consistency(network):
+	validity = True
+	for node in network:
+		if (node.status == "t"):
+			if node.value != True:
+				validity = False 
+		if (node.status == "f"):
+			if node.value != False:
+				validity = False
+	return validity
+
+def rejection_sampling(network, sample_number):
+	true_count = 0
+	false_count = 0
+	consistent_count = 0
+	clear_network_values(network)
+	for x in range(sample_number):
+		prior_sample(network)
+		if (check_consistency(network)):
+			consistent_count+=1
+			if (check_query_variable(network)):
+				true_count+=1
+			else:
+				false_count+=1
+		clear_network_values(network)
+	print("Number consistent:", consistent_count)
+	if ((false_count+true_count)!=0):
+		print ("Ratio:", (true_count)/(false_count+true_count))
+		return (true_count/(false_count+true_count))
+	else:
+		print("Not enough samples")
+		return 0
+
+def weighted_sample (network):
+	weight = 1
+	for node in network:
+		if (node.status == "t"):
+			node.value = True
+		if (node.status == "f"):
+			node.value = False
+	for node in network:
+		if (node.status == "t" or node.status=="f"):
+			gen_val(node, network)
+			if (node.parent1 == None):
+				if (node.value == True):
+					weight = weight * node.cpt.cpt_1_T
+				else:
+					weight = weight * node.cpt.cpt_1_F
+			if (node.parent1 != None and node.parent2 == None):
+				if (node.parent1.value == True):
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_2_T
+					else:
+						weight = weight * node.cpt.cpt_2_F
+				else:
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_1_T
+					else:
+						weight = weight * node.cpt.cpt_1_F
+			if (node.parent1 != None and node.parent2!=None):
+				if (node.parent1.value == False and node.parent2.value == False):
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_1_T
+					else:
+						weight = weight * node.cpt.cpt_1_F
+				if (node.parent1.value == False and node.parent2.value == True):
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_2_T
+					else:
+						weight = weight * node.cpt.cpt_2_F
+				if (node.parent1.value == True and node.parent2.value == False):
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_3_T
+					else:
+						weight = weight * node.cpt.cpt_3_F
+				if (node.parent1.value == True and node.parent2.value == True):
+					if (node.value == True):
+						weight = weight * node.cpt.cpt_4_T
+					else:
+						weight = weight * node.cpt.cpt_4_F
+		else:
+			node.value = gen_val(node, network)
+
+	return weight
+
+def likelihood_weighting(network, sample_number):
+	true_count = 0;
+	false_count = 0;
+	for x in range(sample_number):
+		weight = weighted_sample(network)
+		if (check_query_variable(network)):
+			true_count+=weight 
+		else:
+			false_count+=weight 
+	print("True_count:", true_count)
+	print("False_count:", false_count)
+	if ((true_count+false_count) != 0):
+		print("Probability:", (true_count/(true_count+false_count)))
+	else:
+		print("Not enough samples")
+
+
+def clear_network_values (network):
+	for node in network:
+		node.value = None
 
 def project6_main():
 	network = create_bayesian_network(sys.argv[1])
 	assign_status(sys.argv[2], network)
+	change_parent_assigments_to_nodes(network)
 
-	for node in network:
-		node.print_out()
+	rejection_sampling(network, int(sys.argv[3]))
+	likelihood_weighting(network, 20000)
 
 if __name__ == '__main__':
 	project6_main()		

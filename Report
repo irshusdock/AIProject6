@@ -1,0 +1,21 @@
+Report
+
+Did either method converge to a probability?
+
+	Yes, in query1 both methods converged to a probability, as can be seen in Project6Analytics.pdf. The steadily decreasing variances
+	demonstrate an increasing accuracy of prediction.
+	In query2, the sample size was too small for rejection sampling to be effect. There simply weren't enough consistent networks generatted.
+	Likelihood weighting, however, converged to a probability in query2 as well. This is because likelihood weighting constructs only consistent
+	networks.
+
+Was there any difference in the convergence rate?
+
+	Yes, in query1 likelihood weighting converged to a probability more quickly than rejection sampling. In query2, likelihood weighting was the only
+	approach to converge to a probability within the given number of samples.
+
+Explain why
+
+	Likelihood weighting performed better than rejection sampling because it is specifically designed to address the issue of too many samples being
+	rejected. Likelihood weighting generates only consistent bayes nets, accounting for this choice by weighting the resultant nets by their likelihood
+	of occurring naturally. Likelihood weighting converged faster because it didn't have to reject inconsistent nets, and was thus able to use all the nets 
+	it generated.
